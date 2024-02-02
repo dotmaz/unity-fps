@@ -1,0 +1,15 @@
+# Ignore everything except for the Assets directory parent folder by default
+/Assets/*
+/Library
+/Logs
+/Packages
+/ProjectSettings
+/Temp
+/UserSettings
+
+# # Include the Assets/Scripts directory and its contents
+!/Assets/Scripts/
+!/Assets/ScriptableObjects/
+!/Assets/ScriptableObjects/Scripts/
+
+*.meta
