@@ -11,6 +11,19 @@ namespace StarterAssets
 #endif
 	public class FirstPersonController : MonoBehaviour
 	{
+		// Head bob
+
+		[Header("Head Bobbing")]
+		public float BobbingSpeed = 16f;
+		public float BobbingAmount = 0.04f;
+		public float Midpoint = 2.0f;
+
+		private float _defaultPosY = 0;
+		private float _timer = 0;
+
+
+		///
+
 		public UIManager uiManager;
 
 
@@ -111,6 +124,7 @@ namespace StarterAssets
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
+			_defaultPosY = CinemachineCameraTarget.transform.localPosition.y;
 		}
 
 		private void Update()
@@ -118,6 +132,33 @@ namespace StarterAssets
 			JumpAndGravity();
 			GroundedCheck();
 			Move();
+
+			if(Mathf.Abs(_input.move.x) > 0.1f || Mathf.Abs(_input.move.y) > 0.1f) // Player is moving
+			{
+				if(_input.sprint){
+					// Sprint bobbing - slightly faster, higher bobbing amount
+					_timer += Time.deltaTime * (BobbingSpeed + 2.0f);
+					float sineWave = Mathf.Sin(_timer);
+					CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
+																				_defaultPosY + sineWave * BobbingAmount,
+																				CinemachineCameraTarget.transform.localPosition.z);
+				}else{
+					// Walking bobbing - slightly slower, lower bobbing amount
+					_timer += Time.deltaTime * BobbingSpeed;
+					float sineWave = Mathf.Sin(_timer);
+					CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
+																				_defaultPosY + sineWave * (BobbingAmount * 0.5f),
+																				CinemachineCameraTarget.transform.localPosition.z);
+				}
+			}
+			else
+			{
+				// Reset head position when not moving
+				_timer = 0;
+				CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
+																			Mathf.Lerp(CinemachineCameraTarget.transform.localPosition.y, _defaultPosY, Time.deltaTime * BobbingSpeed),
+																			CinemachineCameraTarget.transform.localPosition.z);
+			}
 		}
 
 		private void LateUpdate()
