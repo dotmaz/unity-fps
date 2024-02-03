@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using StarterAssets;
+
 
 public class RifleBehavior : MonoBehaviour
 {
@@ -26,6 +28,8 @@ public class RifleBehavior : MonoBehaviour
     private float lastShotTime = 0f;
     private bool isShooting = false;
 
+    private FirstPersonController firstPersonController;
+
 
     public void Initialize(Item weaponData)
     {
@@ -44,6 +48,7 @@ public class RifleBehavior : MonoBehaviour
     {  
         uiManager = FindObjectOfType<UIManager>();
         inventoryUI = FindObjectOfType<InventoryUI>();
+        firstPersonController = FindObjectOfType<FirstPersonController>();
         animator = GetComponent<Animator>();
 
         // Define the shoot action
@@ -114,6 +119,8 @@ public class RifleBehavior : MonoBehaviour
                 // Destroy the Particle System after it has finished
                 Destroy(spawnedParticles.gameObject, spawnedParticles.main.duration);
             }
+
+            firstPersonController.TriggerRecoil();
             
         }
     }

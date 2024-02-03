@@ -10,8 +10,29 @@ namespace StarterAssets
 	[RequireComponent(typeof(PlayerInput))]
 #endif
 	public class FirstPersonController : MonoBehaviour
-	{
-		// Head bob
+	{	
+		[Header("Recoil")]
+		public float RecoilKickBack = .02f; // The intensity of the recoil
+		public float RecoilRecoverySpeed = 0.5f; // Speed at which the camera returns to original position
+		private float _recoilAmount = 0f; // Dynamic amount of recoil to apply
+		public float MaxRecoilX = 20f;
+
+		private bool _isRecoveringFromRecoil = false;
+		public float _recoilRecoveryTime = 0.5f; // Duration in seconds for the recoil to recover
+		private float _recoilRecoveryTimer = 0f; // Timer to track the recovery duration
+
+		[Header("Gun Sway")]
+		public Transform WeaponPosition;
+		private Vector3 _originalWeaponPosition;
+		private Quaternion _originalWeaponRotation;
+
+		public float SwayAmount = 0.02f;
+		public float MaxSwayAmount = 0.06f;
+		public float SwaySmoothness = 4f;
+
+		public float RotationSwayAmount = 0.5f;
+		public float MaxRotationSwayAmount = 1f;
+		public float RotationSwaySmoothness = 3f;
 
 		[Header("Head Bobbing")]
 		public float BobbingSpeed = 16f;
@@ -21,9 +42,7 @@ namespace StarterAssets
 		private float _defaultPosY = 0;
 		private float _timer = 0;
 
-
-		///
-
+		// UI manager
 		public UIManager uiManager;
 
 
@@ -125,6 +144,8 @@ namespace StarterAssets
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
 			_defaultPosY = CinemachineCameraTarget.transform.localPosition.y;
+			_originalWeaponPosition = WeaponPosition.localPosition;
+			_originalWeaponRotation = WeaponPosition.localRotation;
 		}
 
 		private void Update()
@@ -133,38 +154,125 @@ namespace StarterAssets
 			GroundedCheck();
 			Move();
 
-			if(Mathf.Abs(_input.move.x) > 0.1f || Mathf.Abs(_input.move.y) > 0.1f) // Player is moving
+			ApplyHeadBob();
+			ApplyRecoil();
+		}
+
+		private void ApplyHeadBob()
+		{
+			if (Mathf.Abs(_input.move.x) > 0.1f || Mathf.Abs(_input.move.y) > 0.1f) // Player is moving
 			{
-				if(_input.sprint){
-					// Sprint bobbing - slightly faster, higher bobbing amount
-					_timer += Time.deltaTime * (BobbingSpeed + 2.0f);
-					float sineWave = Mathf.Sin(_timer);
-					CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
-																				_defaultPosY + sineWave * BobbingAmount,
-																				CinemachineCameraTarget.transform.localPosition.z);
-				}else{
-					// Walking bobbing - slightly slower, lower bobbing amount
-					_timer += Time.deltaTime * BobbingSpeed;
-					float sineWave = Mathf.Sin(_timer);
-					CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
-																				_defaultPosY + sineWave * (BobbingAmount * 0.5f),
-																				CinemachineCameraTarget.transform.localPosition.z);
-				}
+				_timer += Time.deltaTime * (BobbingSpeed * (_input.sprint ? 1.2f : 1f));
+				float waveSlice = Mathf.Sin(_timer);
+				float lateralWave = Mathf.Cos(_timer * 0.9f); // Slightly out of sync with the vertical movement
+
+				// Create a more complex lateral movement pattern
+				float horizontalBob = lateralWave * BobbingAmount * 0.3f; // Adjust the multiplier for subtlety
+
+				// Keep the vertical bob as is
+				float verticalBob = waveSlice * BobbingAmount * (_input.sprint ? 1.2f : 1f);
+
+				// Apply bobbing effect with nuanced lateral movement
+				CinemachineCameraTarget.transform.localPosition = new Vector3(
+					_originalWeaponPosition.x + horizontalBob, // Apply nuanced lateral movement
+					_defaultPosY + verticalBob, // Apply vertical movement
+					CinemachineCameraTarget.transform.localPosition.z);
 			}
 			else
 			{
 				// Reset head position when not moving
 				_timer = 0;
-				CinemachineCameraTarget.transform.localPosition = new Vector3(CinemachineCameraTarget.transform.localPosition.x,
-																			Mathf.Lerp(CinemachineCameraTarget.transform.localPosition.y, _defaultPosY, Time.deltaTime * BobbingSpeed),
-																			CinemachineCameraTarget.transform.localPosition.z);
+				CinemachineCameraTarget.transform.localPosition = Vector3.Lerp(CinemachineCameraTarget.transform.localPosition, 
+					new Vector3(_originalWeaponPosition.x, _defaultPosY, CinemachineCameraTarget.transform.localPosition.z), Time.deltaTime * BobbingSpeed);
 			}
+		}
+
+		private void ApplyRecoil()
+		{
+			if (_recoilAmount > 0f)
+			{
+				// Apply recoil
+				_cinemachineTargetPitch -= _recoilAmount;
+				
+				// Ensure the pitch after recoil doesn't exceed your pitch limits
+				_cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp, TopClamp);
+				
+				// Start recoil recovery
+				_isRecoveringFromRecoil = true;
+				_recoilRecoveryTimer = _recoilRecoveryTime;
+
+				// Reset recoil amount after applying
+				_recoilAmount = 0f;
+			}
+
+			// Handle recoil recovery with a constant force
+			if (_isRecoveringFromRecoil)
+			{
+				// Apply a constant recovery rate instead of trying to lerp back to a pre-recoil position
+				float recoveryRate = RecoilKickBack / _recoilRecoveryTime * Time.deltaTime; // Adjust this formula as needed
+				_cinemachineTargetPitch += recoveryRate * RecoilRecoverySpeed; // Apply constant recovery
+
+				// Update the recovery timer
+				_recoilRecoveryTimer -= Time.deltaTime;
+				if (_recoilRecoveryTimer <= 0f)
+				{
+					// Stop recovery after the timer expires
+					_isRecoveringFromRecoil = false;
+				}
+			}
+
+			// Clamp the pitch after recovery to ensure it doesn't exceed bounds due to constant recovery
+			_cinemachineTargetPitch = Mathf.Clamp(_cinemachineTargetPitch, BottomClamp, TopClamp);
+
+			// Apply the updated pitch to the CinemachineCameraTarget
+			CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+		}
+
+
+
+		public void TriggerRecoil(){
+			
+			 _recoilAmount += RecoilKickBack;
+    		//  _recoilAmount = Mathf.Clamp(_recoilAmount, 0, MaxRecoilX); // Ensure recoil doesn't exceed max value
 		}
 
 		private void LateUpdate()
 		{
 			CameraRotation();
+			ApplyGunSway();
 		}
+		
+		private void ApplyGunSway()
+		{
+			// if (IsAimingDownSights()) // You need to implement this method.
+			// {
+			// 	return; // Skip sway when ADS.
+			// }
+
+			// Determine the sway based on horizontal and vertical input
+			float movementX = -_input.move.x * SwayAmount;
+			float movementY = -_input.move.y * SwayAmount;
+			movementX = Mathf.Clamp(movementX, -MaxSwayAmount, MaxSwayAmount);
+			movementY = Mathf.Clamp(movementY, -MaxSwayAmount, MaxSwayAmount);
+
+			Vector3 finalPosition = new Vector3(movementX, movementY, 0);
+			WeaponPosition.localPosition = Vector3.Lerp(WeaponPosition.localPosition, _originalWeaponPosition + finalPosition, Time.deltaTime * SwaySmoothness);
+
+			// Calculate rotation sway based on horizontal movement
+			float rotationX = -_input.move.y * RotationSwayAmount; // Tilt based on vertical movement
+			float rotationY = _input.move.x * RotationSwayAmount; // Tilt based on horizontal movement
+			rotationX = Mathf.Clamp(rotationX, -MaxRotationSwayAmount, MaxRotationSwayAmount);
+			rotationY = Mathf.Clamp(rotationY, -MaxRotationSwayAmount, MaxRotationSwayAmount);
+
+			// Incorporate vertical velocity into the sway for a more dynamic effect
+			// Tilt the weapon forward or backward based on the vertical velocity
+			float verticalVelocityEffect = _verticalVelocity * 0.01f; // Scale the effect based on your preference
+			rotationX += verticalVelocityEffect; // Adjust rotationX to include the effect of vertical movement
+
+			Quaternion finalRotation = Quaternion.Euler(new Vector3(rotationX, rotationY, 0));
+			WeaponPosition.localRotation = Quaternion.Slerp(WeaponPosition.localRotation, _originalWeaponRotation * finalRotation, Time.deltaTime * RotationSwaySmoothness);
+		}
+
 
 		private void GroundedCheck()
 		{

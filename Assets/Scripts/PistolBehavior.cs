@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using StarterAssets;
 
 public class PistolBehavior : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class PistolBehavior : MonoBehaviour
     public ParticleSystem muzzleFlash;
 
     private InventoryUI inventoryUI;
+    private FirstPersonController firstPersonController;
 
     private int currentAmmo;
     private float damage;
@@ -37,6 +39,7 @@ public class PistolBehavior : MonoBehaviour
     {  
         uiManager = FindObjectOfType<UIManager>();
         inventoryUI = FindObjectOfType<InventoryUI>();
+        firstPersonController = FindObjectOfType<FirstPersonController>();
         animator = GetComponent<Animator>();
 
         // Define the shoot action
@@ -87,6 +90,8 @@ public class PistolBehavior : MonoBehaviour
                 // Destroy the Particle System after it has finished
                 Destroy(spawnedParticles.gameObject, spawnedParticles.main.duration);
             }
+
+            firstPersonController.TriggerRecoil();
             
         }
     }
