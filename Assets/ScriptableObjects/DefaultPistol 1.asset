@@ -15,5 +15,5 @@ MonoBehaviour:
   itemName: Pistol
   itemPrefab: {fileID: 9176047565066685605, guid: 138e32017e876f843bf40d5e1d84c3f3,
     type: 3}
-  ammoCapacity: 10
+  ammoCapacity: 50
   damage: 2

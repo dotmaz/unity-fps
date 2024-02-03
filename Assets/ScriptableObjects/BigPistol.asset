@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BigPistol
   m_EditorClassIdentifier: 
   itemName: Big Pistol
-  itemPrefab: {fileID: 9176047565066685605, guid: 138e32017e876f843bf40d5e1d84c3f3,
+  itemPrefab: {fileID: 5786097810451525583, guid: 04ec9d28762e672449bf3651b443ce4c,
     type: 3}
-  ammoCapacity: 50
+  ammoCapacity: 500
   damage: 2
