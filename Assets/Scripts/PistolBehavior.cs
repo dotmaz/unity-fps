@@ -7,6 +7,7 @@ public class PistolBehavior : MonoBehaviour
 
     private Animator animator;
     private InputAction shootAction;
+    private InputAction adsAction;
 
     public ParticleSystem muzzleFlash;
 
@@ -42,6 +43,19 @@ public class PistolBehavior : MonoBehaviour
         shootAction = new InputAction(binding: "<Mouse>/leftButton");
         shootAction.performed += ctx => TriggerRecoil();
         shootAction.Enable();
+
+        adsAction = new InputAction(binding: "<Mouse>/rightButton");
+        adsAction.started += ctx => StartADS();
+        adsAction.canceled += ctx => StopADS();
+        adsAction.Enable();
+    }
+
+    private void StartADS(){
+        animator.SetBool("ADSActive", true);
+    }
+
+    private void StopADS(){
+        animator.SetBool("ADSActive", false);
     }
 
     private void TriggerRecoil()
@@ -83,10 +97,12 @@ public class PistolBehavior : MonoBehaviour
             inventoryUI.UpdateAmmoDisplay(currentAmmo);
         }
         shootAction.Enable();
+        adsAction.Enable();
     }
 
     void OnDisable()
     {
         shootAction.Disable();
+        adsAction.Disable();
     }
 }
