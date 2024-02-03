@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class WeaponManager : MonoBehaviour
 {
-    public Transform cameraTransform;
+    public Transform weaponPosition;
 
     private Dictionary<string, GameObject> instantiatedWeapons = new Dictionary<string, GameObject>();
 
@@ -14,9 +14,8 @@ public class WeaponManager : MonoBehaviour
         {
             GameObject weaponPrefab = Instantiate(weaponData.itemPrefab);
             
-            weaponPrefab.transform.SetParent(cameraTransform, false);
+            weaponPrefab.transform.SetParent(weaponPosition, false);
 
-            weaponPrefab.transform.localPosition = new Vector3(0.225f, -0.297f, 0.648f);
             weaponPrefab.transform.localRotation = Quaternion.Euler(0, 0, 0);
 
             instantiatedWeapons[weaponName] = weaponPrefab;
@@ -24,7 +23,12 @@ public class WeaponManager : MonoBehaviour
 
             instantiatedWeapons[weaponName] = weaponPrefab;
 
-            weaponPrefab.GetComponent<PistolBehavior>().Initialize(weaponData);
+            if(weaponName == "Pistol"){
+                weaponPrefab.GetComponent<PistolBehavior>().Initialize(weaponData);
+            }else if(weaponName == "Big Pistol"){
+                weaponPrefab.GetComponent<RifleBehavior>().Initialize(weaponData);
+            }
+            
         }
 
         instantiatedWeapons[weaponName].SetActive(true);
